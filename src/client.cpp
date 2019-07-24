@@ -1,4 +1,4 @@
-#include <Poco/Net/Net.h>
+#include <Poco/Net/Socket.h>
 #include <iostream>
 
 int main(int argc, char const *argv[])
