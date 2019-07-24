@@ -1,4 +1,4 @@
-#include <Poco/Net/Socket.h>
+#include <Poco/Net/StreamSocket.h>
 #include <iostream>
 
 int main(int argc, char const *argv[])
