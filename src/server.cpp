@@ -13,23 +13,27 @@ int main(int argc, char const *argv[]) {
   // The same size for the text, because... dunno.
   Poco::Buffer<char> text(std::size_t(1024));
 
-  Poco::Timespan timeout_time(10, 0);
+  Poco::Timespan timeout_time(1, 0);
 
   // Starting to listen for connections
   while (true) {
     // Accepting connections to the server
     connection = server.acceptConnection();
+
     while (connection.impl()->initialized()) {
       // Receiving data from the connection
       connection.receiveBytes(buffer);
+
       if (buffer.isReadable()) {
         // If there's something in the buffer -> read the buffer
         buffer.read(text);
         std::cout << "MESSAGE FROM CLIENT: " << text.begin() << std::endl;
-      } else {
-        // Else, close the connection and go to the acceptConnection loop
-        std::cout << "No buffer left, closing connection..." << std::endl;
-        connection.close();
+
+        if (!strcmp(text.begin(), "!q")) {
+          // If the message is the exit message in client, close connection and
+          // go to acceptConnection loop
+          connection.close();
+        }
       }
     }
   }
