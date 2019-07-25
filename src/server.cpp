@@ -27,12 +27,15 @@ int main(int argc, char const *argv[]) {
       if (buffer.isReadable()) {
         // If there's something in the buffer -> read the buffer
         buffer.read(text);
-        std::cout << "MESSAGE FROM CLIENT: " << text.begin() << std::endl;
 
         if (!strcmp(text.begin(), "!q")) {
           // If the message is the exit message in client, close connection and
           // go to acceptConnection loop
+          std::cout << "Exit message received, closing connection..."
+                    << std::endl;
           connection.close();
+        } else {
+          std::cout << "MESSAGE FROM CLIENT: " << text.begin() << std::endl;
         }
       }
     }
