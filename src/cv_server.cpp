@@ -1,19 +1,16 @@
-#include <Poco/BasicEvent.h>
 #include <Poco/Net/ServerSocket.h>
 #include <iostream>
+#include <opencv2/opencv.hpp>
+#include <vector>
 
 int main(int argc, char const *argv[]) {
   // Defining all the variables used in the connection
   Poco::Net::SocketAddress address("127.0.0.1:10000");
   Poco::Net::ServerSocket server(address);  // NOTE: The address is given here
   Poco::Net::StreamSocket connection;
-
-  // Buffer size: 1024. Just some I checked online.
-  Poco::FIFOBuffer buffer(std::size_t(1024));
-  // The same size for the text, because... dunno.
-  Poco::Buffer<char> text(std::size_t(1024));
-
-  Poco::Timespan timeout_time(1, 0);
+  cv::Mat img;
+  std::vector<uchar> img_buffer;
+//   std::vector<cv::Mat> img_reco;
 
   // Starting to listen for connections
   while (true) {
@@ -22,22 +19,11 @@ int main(int argc, char const *argv[]) {
 
     while (connection.impl()->initialized()) {
       // Receiving data from the connection
-      connection.receiveBytes(buffer);
+      connection.receiveBytes(&img_buffer, 4096);
 
-      if (buffer.isReadable()) {
-        // If there's something in the buffer -> read the buffer
-        buffer.read(text);
+    //   img = cv::imdecode(img_buffer, cv::ImreadModes::IMREAD_ANYDEPTH);
 
-        if (!strcmp(text.begin(), "!q")) {
-          // If the message is the exit message in client, close connection and
-          // go to acceptConnection loop
-          std::cout << "Exit message received, closing connection..."
-                    << std::endl;
-          connection.close();
-        } else {
-          std::cout << "MESSAGE FROM CLIENT: " << text.begin() << std::endl;
-        }
-      }
+    //   cv::imshow("Socket image", img);
     }
   }
   return 0;

@@ -28,6 +28,10 @@ int main(int argc, char const *argv[]) {
   std::cout << "Encoded image size:" << std::endl
             << img_buffer.size() << std::endl;
 
+  img = cv::imdecode(img_buffer, cv::IMREAD_ANYDEPTH);
+
+  cv::imshow("Decoded image", img);
+
   std::cout << "Sending camera stream to socket server" << std::endl;
 
   // Connect to the server and send a greet message

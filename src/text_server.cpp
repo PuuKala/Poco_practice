@@ -1,4 +1,3 @@
-#include <Poco/BasicEvent.h>
 #include <Poco/Net/ServerSocket.h>
 #include <iostream>
 
@@ -12,8 +11,6 @@ int main(int argc, char const *argv[]) {
   Poco::FIFOBuffer buffer(std::size_t(1024));
   // The same size for the text, because... dunno.
   Poco::Buffer<char> text(std::size_t(1024));
-
-  Poco::Timespan timeout_time(1, 0);
 
   // Starting to listen for connections
   while (true) {
