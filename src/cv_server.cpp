@@ -13,22 +13,24 @@ int main(int argc, char const *argv[]) {
   cv::Mat img;
   std::vector<uchar> img_buffer;
   std::size_t buffer_size;
-  
+
   std::cout << "Server ready for connection" << std::endl;
   connection = server.acceptConnection();
 
   // Receive buffer size as std::size_t
-  connection.receiveBytes(&buffer_size, sizeof(buffer_size)-1);
-  std::cout << "Size of image to receive:" << buffer_size << std::endl;
+  connection.receiveBytes(&buffer_size, sizeof(buffer_size) - 1);
+  std::cout << "Received the image size" << std::endl;
 
-  // A middle step from getting the raw data and pushing it into vector
+  // A required middle piece for receiving the data from socket correctly
   uchar sockData[buffer_size];
 
   // Receiving data from the connection
   connection.receiveBytes(sockData, buffer_size);
   connection.close();
-  img_buffer.assign(sockData, sockData+buffer_size);
-  std::cout << "Image actual size:" << img_buffer.size() << std::endl;
+  std::cout << "Received the image and closed the connection" << std::endl;
+
+  // Changing everything back to cv::Mat and showing it
+  img_buffer.assign(sockData, sockData + buffer_size);
   img = cv::imdecode(img_buffer, cv::IMREAD_COLOR);
   cv::imshow("Socket image", img);
   cv::waitKey();
