@@ -1,7 +1,6 @@
 #include <Poco/Net/StreamSocket.h>
 #include <iostream>
 #include <opencv2/opencv.hpp>
-#include <string>
 #include <vector>
 
 #include "cv_comm_definitions.hpp"
