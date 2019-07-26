@@ -11,6 +11,8 @@ if (NOT OpenCV_FOUND)
     message(FATAL_ERROR "OpenCV not found!")
 endif(NOT OpenCV_FOUND)
 
+include_directories("include")
+
 add_executable(poco_text_server_test src/text_server.cpp)
 target_link_libraries(poco_text_server_test ${CONAN_LIBS})
 

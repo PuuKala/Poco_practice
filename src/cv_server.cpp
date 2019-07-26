@@ -3,6 +3,8 @@
 #include <opencv2/opencv.hpp>
 #include <vector>
 
+#include "cv_comm_definitions.hpp"
+
 int main(int argc, char const *argv[]) {
   // Defining all the variables used in the connection
   Poco::Net::SocketAddress address("127.0.0.1:10000");
@@ -10,21 +12,20 @@ int main(int argc, char const *argv[]) {
   Poco::Net::StreamSocket connection;
   cv::Mat img;
   std::vector<uchar> img_buffer;
-//   std::vector<cv::Mat> img_reco;
+  std::size_t buffer_size;
 
-  // Starting to listen for connections
-  while (true) {
-    // Accepting connections to the server
-    connection = server.acceptConnection();
+  connection = server.acceptConnection();
 
-    while (connection.impl()->initialized()) {
-      // Receiving data from the connection
-      connection.receiveBytes(&img_buffer, 4096);
+  // Receive buffer size as std::size_t
+  connection.receiveBytes(&buffer_size, sizeof(buffer_size));
+  std::cout << "Received image size:" << buffer_size << std::endl;
 
-    //   img = cv::imdecode(img_buffer, cv::ImreadModes::IMREAD_ANYDEPTH);
-
-    //   cv::imshow("Socket image", img);
-    }
-  }
+  // Receiving data from the connection
+  connection.receiveBytes(&img_buffer, buffer_size);
+  connection.close();
+  std::cout << "Image actual size:" << img_buffer.size() << std::endl;
+  img = cv::imdecode(img_buffer, cv::IMREAD_COLOR);
+  cv::imshow("Socket image", img);
+  cv::waitKey();
   return 0;
 }

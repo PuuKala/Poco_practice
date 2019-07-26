@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include "cv_comm_definitions.hpp"
+
 int main(int argc, char const *argv[]) {
   Poco::Net::SocketAddress address("127.0.0.1:10000");
   Poco::Net::StreamSocket connection;
@@ -17,32 +19,22 @@ int main(int argc, char const *argv[]) {
     return 0;
   }
 
-  // Take a picture for checking image sizes
+  // Take a picture and resize it
   cap.read(img);
-  std::cout << "cv::Mat size in bytes:" << std::endl
-            << img.total() * img.elemSize() << std::endl;
+  cv::resize(img, img, cv::Size(VIDEO_WIDTH, VIDEO_HEIGHT));
 
-  // Encode image and check its size
+  // Encode it and show its size
   cv::imencode(".webp", img, img_buffer);
+  std::size_t buffer_size = img_buffer.size();
 
-  std::cout << "Encoded image size:" << std::endl
-            << img_buffer.size() << std::endl;
-
-  img = cv::imdecode(img_buffer, cv::IMREAD_ANYDEPTH);
-
-  cv::imshow("Decoded image", img);
-
-  std::cout << "Sending camera stream to socket server" << std::endl;
-
-  // Connect to the server and send a greet message
   connection.connect(address);
+  connection.sendBytes(&buffer_size, sizeof(buffer_size));
 
-  while (cap.read(img)) {
-    // Encode the image into the buffer and send it
-    cv::imencode(".webp", img, img_buffer);
-    connection.sendBytes(img_buffer.data(), img_buffer.size());
-  }
+  std::cout << "Encoded image size:" << img_buffer.size() << std::endl;
+  std::cout << "Sending image to socket server" << std::endl;
 
+  // Connect to the server and send the image
+  connection.sendBytes(img_buffer.data(), buffer_size);
   connection.close();
 
   return 0;
