@@ -18,8 +18,8 @@ int main(int argc, char const *argv[]) {
   connection = server.acceptConnection();
 
   // Receive buffer size as std::size_t
-  connection.receiveBytes(&buffer_size, sizeof(buffer_size) - 1);
-  std::cout << "Received the image size" << std::endl;
+  connection.receiveBytes(&buffer_size, sizeof(buffer_size));
+  std::cout << "Received the image size info" << std::endl;
 
   // A required middle piece for receiving the data from socket correctly
   uchar sockData[buffer_size];

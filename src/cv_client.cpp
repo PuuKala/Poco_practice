@@ -28,7 +28,7 @@ int main(int argc, char const *argv[]) {
   std::cout << "Sending image size info to serever" << std::endl;
   std::size_t buffer_size = img_buffer.size();
   connection.connect(address);
-  connection.sendBytes(&buffer_size, sizeof(buffer_size) - 1);
+  connection.sendBytes(&buffer_size, sizeof(buffer_size));
 
   // Send the image to server
   // NOTE: buffer_size == img_buffer.size()
