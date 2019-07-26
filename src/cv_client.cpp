@@ -28,13 +28,16 @@ int main(int argc, char const *argv[]) {
   std::size_t buffer_size = img_buffer.size();
 
   connection.connect(address);
-  connection.sendBytes(&buffer_size, sizeof(buffer_size));
+  connection.sendBytes(&buffer_size, sizeof(buffer_size)-1);
 
   std::cout << "Encoded image size:" << img_buffer.size() << std::endl;
   std::cout << "Sending image to socket server" << std::endl;
 
   // Connect to the server and send the image
+  // NOTE: buffer_size == img_buffer.size()
   connection.sendBytes(img_buffer.data(), buffer_size);
+
+  std::cout << "Image sent, closing..." << std::endl;
   connection.close();
 
   return 0;
