@@ -10,6 +10,10 @@ int main(int argc, char const *argv[]) {
   Poco::Net::StreamSocket connection;
   cv::Mat img;
   std::vector<uchar> img_buffer;
+  std::size_t buffer_size;
+
+  // Open connection to server
+  connection.connect(address);
 
   // Open camera stream
   cv::VideoCapture cap(0);
@@ -18,24 +22,26 @@ int main(int argc, char const *argv[]) {
     return 0;
   }
 
-  // Take a picture, resize and encode it
+  // Reading a single image to know the buffer size needed and sending the
+  // buffer size info to server
   cap.read(img);
   cv::resize(img, img, cv::Size(VIDEO_WIDTH, VIDEO_HEIGHT));
-  cv::imencode(".webp", img, img_buffer);
-
-  // Connect to the server and send the image size info
-  std::cout << "Sending image size info to serever" << std::endl;
-  std::size_t buffer_size = img_buffer.size();
-  connection.connect(address);
+  buffer_size = img.total() * img.elemSize();
+  std::cout << "Sending buffer size: " << buffer_size << std::endl;
   connection.sendBytes(&buffer_size, sizeof(buffer_size));
 
-  // Send the image to server
-  // NOTE: buffer_size == img_buffer.size()
-  std::cout << "Sending image to server" << std::endl;
-  connection.sendBytes(img_buffer.data(), buffer_size);
+  while (connection.impl()->initialized()) {
+    // Take a picture and resize it
+    cap.read(img);
+    cv::resize(img, img, cv::Size(VIDEO_WIDTH, VIDEO_HEIGHT));
 
-  std::cout << "Image sent, closing..." << std::endl;
+    // Reshape the image to essentially an array and send it
+    img.reshape(0, 1);
+    connection.sendBytes(img.data, buffer_size);
+
+    // Sleep for 33ms
+    cv::waitKey(33);
+  }
   connection.close();
-
   return 0;
 }
