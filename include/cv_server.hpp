@@ -22,11 +22,13 @@ class CVSocketServer : public Poco::Runnable {
   void StartSending(cv::Mat &image);
   void StartReceiving(int cv_mat_type);
   void Stop();
+  void Exit();
   void SendNewImage(cv::Mat &image);  // Can be done with events easily too
   void run();
 
   // Declaration of the event for getting the received image out from this class
   Poco::BasicEvent<cv::Mat> ReceivedImage;
+  Poco::BasicEvent<ServerState> StateChanged;
 
  private:
   // Poco socket client side declarations
@@ -36,6 +38,7 @@ class CVSocketServer : public Poco::Runnable {
 
   // Threading declarations
   Poco::Mutex mutex_;
+  Poco::Semaphore sema_;
 
   // Declarations for variables containing the data sending/receiving
   cv::Mat image_;
@@ -48,10 +51,12 @@ class CVSocketServer : public Poco::Runnable {
 
   // Declaration of state and whether there's new image available
   bool new_image_ = false;
+  bool running_ = true;
   ServerState state_;
 
   // Private functions, more info in source file
   void SendMat();
+  bool CheckConnection();
   void ReceiveMat();
   void StateMachine();
 };

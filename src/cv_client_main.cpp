@@ -9,6 +9,15 @@ void eventReceive(cv::Mat &image) {
   cv::waitKey(1);
 }
 
+void eventState(void *sender, CVSocketClient::ClientState &state){
+  if (state == CVSocketClient::kClientIdle)
+  {
+    std::cout << "State changed to Idle, calling exit function..." << std::endl;
+    CVSocketClient *client = static_cast<CVSocketClient*>(sender);
+    client->Exit();
+  }
+}
+
 int main(int argc, char const *argv[]) {
   // Handle input from command line arguments
   bool sending;
@@ -44,11 +53,13 @@ int main(int argc, char const *argv[]) {
       return 0;
     }
 
+    client_thread.start(client);
+
     cap >> image;
     client.StartSending(image);
 
     // This start can be called before or after StartSending/StartReceiving
-    client_thread.start(client);
+    
 
     std::cout << "Going to camera loop..." << std::endl;
     while (true) {
@@ -60,9 +71,10 @@ int main(int argc, char const *argv[]) {
   }
 
   if (!sending) {
-    client.StartReceiving(CV_8UC3);
     client_thread.start(client);
+    client.StartReceiving(CV_8UC3);
     client.ReceivedImage += Poco::delegate(&eventReceive);
+    client.StateChanged += Poco::delegate(&eventState);
 
     // Nothing left to do in the main thread anymore. The client calls for a
     // single thread with function eventReceive() by itself through

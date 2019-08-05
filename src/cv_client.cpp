@@ -2,8 +2,7 @@
 #include <iostream>
 
 CVSocketClient::CVSocketClient(std::string &full_address_string)
-    : address_(full_address_string),
-      state_(kClientIdle) {}
+    : address_(full_address_string), state_(kClientIdle), sema_(1) {}
 
 CVSocketClient::~CVSocketClient() {
   if (connection_.impl()->initialized()) {
@@ -21,6 +20,8 @@ void CVSocketClient::StartSending(cv::Mat &image) {
   std::cout << "Calculated buffer size: " << buffer_size_ << std::endl;
   std::cout << "Starting to send..." << std::endl;
   state_ = kClientSending;
+  StateChanged.notify(this, state_);
+  sema_.set();
 }
 
 void CVSocketClient::StartReceiving(int cv_mat_type) {
@@ -35,6 +36,8 @@ void CVSocketClient::StartReceiving(int cv_mat_type) {
   sock_data_ = new uchar[buffer_size_];
   std::cout << "Starting to receive..." << std::endl;
   state_ = kClientReceiving;
+  StateChanged.notify(this, state_);
+  sema_.set();
 }
 
 void CVSocketClient::Stop() {
@@ -42,7 +45,13 @@ void CVSocketClient::Stop() {
   std::cout << "Stopping..." << std::endl;
   connection_.close();
   state_ = kClientIdle;
+  StateChanged.notify(this, state_);
   mutex_.unlock();
+}
+
+void CVSocketClient::Exit() {
+    std::cout << "Exiting..." << std::endl;
+    running_ = false;    
 }
 
 void CVSocketClient::SendNewImage(cv::Mat &image) {
@@ -59,10 +68,25 @@ void CVSocketClient::SendMat() {
   if (new_image_) {
     mutex_.lock();
     image_.reshape(0, 1);
+    if (!CheckConnection()) {
+      connection_.close();
+      state_ = kClientIdle;
+      StateChanged.notify(this, state_);
+      return;
+    }
     connection_.sendBytes(image_.data, buffer_size_);
     new_image_ = false;
     mutex_.unlock();
   }
+}
+
+bool CVSocketClient::CheckConnection() {
+  if (connection_.poll(Poco::Timespan(0, 100),
+                       Poco::Net::Socket::SELECT_ERROR)) {
+    std::cout << "Disconnected from server" << std::endl;
+    return false;
+  }
+  return true;
 }
 
 void CVSocketClient::ReceiveMat() {
@@ -75,6 +99,15 @@ void CVSocketClient::ReceiveMat() {
   for (std::size_t i = 0; i < buffer_size_; i += received_bytes_) {
     received_bytes_ =
         connection_.receiveBytes(sock_data_ + i, buffer_size_ - i);
+    if (received_bytes_ == 0) {
+      std::cout
+          << "0 bytes received, interpreting that as disconnected from server"
+          << std::endl;
+      connection_.close();
+      state_ = kClientIdle;
+      StateChanged.notify(this, state_);
+      return;
+    }
   }
 
   mutex_.unlock();
@@ -89,14 +122,20 @@ void CVSocketClient::ReceiveMat() {
         image_ptr_ += 3;
       }
     }
+
+    // WARNING: This notification doesn't check if the previous notification is
+    // done. I had trouble initializing Poco::ActiveResult as private variable
+    // and thus, there is no waiting for previous notification to end at the
+    // moment.
     ReceivedImage.notifyAsync(this, image_);
   }
 }
 
 void CVSocketClient::StateMachine() {
   switch (state_) {
-    case kClientIdle:
+    case kClientIdle:  // Not used if start called before run
       std::cout << "Waiting for start function call..." << std::endl;
+      sema_.wait();
       break;
 
     case kClientSending:
@@ -110,7 +149,7 @@ void CVSocketClient::StateMachine() {
 }
 
 void CVSocketClient::run() {
-  while (true) {
+  while (running_) {
     StateMachine();
   }
 }
