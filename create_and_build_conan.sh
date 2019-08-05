@@ -1,3 +1,5 @@
+set -e # Stop on errors
+
 echo -- CREATING BUILD FOLDER --
 mkdir -p build
 cd build
