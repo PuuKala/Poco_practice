@@ -1,18 +1,21 @@
-#include "cv_client.hpp"
+#include "cv_server.hpp"
 #include <iostream>
 
-CVSocketClient::CVSocketClient(std::string &full_address_string)
-    : address_(full_address_string),
-      state_(kClientIdle) {}
+CVSocketServer::CVSocketServer(std::string &full_address_string)
+    : address_(full_address_string), server_(address_), state_(kServerIdle) {}
 
-CVSocketClient::~CVSocketClient() {
+CVSocketServer::~CVSocketServer() {
   if (connection_.impl()->initialized()) {
     connection_.close();
   }
+  if (server_.impl()->initialized())
+  {
+    server_.close();
+  }  
 }
 
-void CVSocketClient::StartSending(cv::Mat &image) {
-  connection_.connect(address_);
+void CVSocketServer::StartSending(cv::Mat &image) {
+  connection_ = server_.acceptConnection();
   connection_.sendBytes(&image.cols, sizeof(image.cols));
   connection_.sendBytes(&image.rows, sizeof(image.rows));
   std::cout << "Sent image size: " << image.cols << "x" << image.rows
@@ -20,11 +23,11 @@ void CVSocketClient::StartSending(cv::Mat &image) {
   buffer_size_ = image.total() * image.elemSize();
   std::cout << "Calculated buffer size: " << buffer_size_ << std::endl;
   std::cout << "Starting to send..." << std::endl;
-  state_ = kClientSending;
+  state_ = kServerSending;
 }
 
-void CVSocketClient::StartReceiving(int cv_mat_type) {
-  connection_.connect(address_);
+void CVSocketServer::StartReceiving(int cv_mat_type) {
+  connection_ = server_.acceptConnection();
   connection_.receiveBytes(&image_cols_, sizeof(image_cols_));
   connection_.receiveBytes(&image_rows_, sizeof(image_rows_));
   std::cout << "Received image size: " << image_cols_ << "x" << image_rows_
@@ -34,18 +37,18 @@ void CVSocketClient::StartReceiving(int cv_mat_type) {
   std::cout << "Calculated buffer size: " << buffer_size_ << std::endl;
   sock_data_ = new uchar[buffer_size_];
   std::cout << "Starting to receive..." << std::endl;
-  state_ = kClientReceiving;
+  state_ = kServerReceiving;
 }
 
-void CVSocketClient::Stop() {
+void CVSocketServer::Stop() {
   mutex_.lock();
   std::cout << "Stopping..." << std::endl;
   connection_.close();
-  state_ = kClientIdle;
+  state_ = kServerIdle;
   mutex_.unlock();
 }
 
-void CVSocketClient::SendNewImage(cv::Mat &image) {
+void CVSocketServer::SendNewImage(cv::Mat &image) {
   if (mutex_.tryLock()) {
     // Copy the image to private image_ in order to be sure the private image_
     // isn't indirectly modified elsewhere without mutex_
@@ -55,7 +58,7 @@ void CVSocketClient::SendNewImage(cv::Mat &image) {
   }
 }
 
-void CVSocketClient::SendMat() {
+void CVSocketServer::SendMat() {
   if (new_image_) {
     mutex_.lock();
     image_.reshape(0, 1);
@@ -65,7 +68,7 @@ void CVSocketClient::SendMat() {
   }
 }
 
-void CVSocketClient::ReceiveMat() {
+void CVSocketServer::ReceiveMat() {
   if (!mutex_.tryLock()) {
     std::cout << "Could not lock mutex for receiving data!" << std::endl;
     return;
@@ -93,23 +96,23 @@ void CVSocketClient::ReceiveMat() {
   }
 }
 
-void CVSocketClient::StateMachine() {
+void CVSocketServer::StateMachine() {
   switch (state_) {
-    case kClientIdle:
+    case kServerIdle:
       std::cout << "Waiting for start function call..." << std::endl;
       break;
 
-    case kClientSending:
+    case kServerSending:
       SendMat();
       break;
 
-    case kClientReceiving:
+    case kServerReceiving:
       ReceiveMat();
       break;
   }
 }
 
-void CVSocketClient::run() {
+void CVSocketServer::run() {
   while (true) {
     StateMachine();
   }

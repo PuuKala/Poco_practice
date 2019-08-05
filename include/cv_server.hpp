@@ -1,24 +1,24 @@
 #pragma once
-#ifndef CV_CLIENT_HPP
-#define CV_CLIENT_HPP
+#ifndef CV_SERVER_HPP
+#define CV_SERVER_HPP
 
 #include <Poco/BasicEvent.h>
 #include <Poco/Mutex.h>
-#include <Poco/Net/StreamSocket.h>
+#include <Poco/Net/ServerSocket.h>
 #include <Poco/Runnable.h>
 #include <Poco/Semaphore.h>
 #include <opencv2/opencv.hpp>
 
 #include <string>
 
-class CVSocketClient : public Poco::Runnable {
+class CVSocketServer : public Poco::Runnable {
  public:
   // Declaration of the states of this class
-  enum ClientState { kClientIdle, kClientSending, kClientReceiving };
+  enum ServerState { kServerIdle, kServerSending, kServerReceiving };
 
   // Public functions, more info in source file
-  CVSocketClient(std::string &full_address_string);
-  ~CVSocketClient();
+  CVSocketServer(std::string &full_address_string);
+  ~CVSocketServer();
   void StartSending(cv::Mat &image);
   void StartReceiving(int cv_mat_type);
   void Stop();
@@ -32,6 +32,7 @@ class CVSocketClient : public Poco::Runnable {
   // Poco socket client side declarations
   Poco::Net::SocketAddress address_;
   Poco::Net::StreamSocket connection_;
+  Poco::Net::ServerSocket server_;
 
   // Threading declarations
   Poco::Mutex mutex_;
@@ -47,11 +48,11 @@ class CVSocketClient : public Poco::Runnable {
 
   // Declaration of state and whether there's new image available
   bool new_image_ = false;
-  ClientState state_;
+  ServerState state_;
 
   // Private functions, more info in source file
   void SendMat();
   void ReceiveMat();
   void StateMachine();
 };
-#endif  // CV_CLIENT_HPP
+#endif  // CV_SERVER_HPP
