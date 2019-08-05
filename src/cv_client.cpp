@@ -3,9 +3,8 @@
 
 CVSocketClient::CVSocketClient(std::string &full_address_string)
     : address_(full_address_string),
-      state_(kClientIdle) /*, notify_result_(ReceivedImage.notifyAsync(this,
-                             image_))*/
-{}
+      state_(kClientIdle),
+      notify_result_(ReceivedImage.notifyAsync(this, image_)) {}
 
 CVSocketClient::~CVSocketClient() {
   if (connection_.impl()->initialized()) {
@@ -92,9 +91,8 @@ void CVSocketClient::ReceiveMat() {
       }
     }
     // Copy in order to be safe from modifications to the Mat properties
-    // notify_result_.wait();
-    // notify_result_ =
-    ReceivedImage.notifyAsync(this, image_);
+    notify_result_.wait();
+    notify_result_ = ReceivedImage.notifyAsync(this, image_);
   }
 }
 

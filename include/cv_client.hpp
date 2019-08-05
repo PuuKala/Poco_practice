@@ -1,8 +1,12 @@
+#pragma once
+#ifndef CV_CLIENT_H
+#define CV_CLIENT_H
+
 #include <Poco/BasicEvent.h>
+#include <Poco/Mutex.h>
 #include <Poco/Net/StreamSocket.h>
 #include <Poco/Runnable.h>
 #include <Poco/Semaphore.h>
-#include <Poco/Mutex.h>
 #include <opencv2/opencv.hpp>
 
 #include <string>
@@ -24,7 +28,7 @@ class CVSocketClient : public Poco::Runnable {
   Poco::Net::SocketAddress address_;
   Poco::Net::StreamSocket connection_;
   Poco::Mutex mutex_;
-  // Poco::ActiveResult<cv::Mat> notify_result_;
+  Poco::ActiveResult<cv::Mat> notify_result_;
   cv::Mat image_;
   cv::Mat received_image_;
   int image_cols_;
@@ -40,3 +44,4 @@ class CVSocketClient : public Poco::Runnable {
   void ReceiveMat();
   void StateMachine();
 };
+#endif  // CV_CLIENT_H
