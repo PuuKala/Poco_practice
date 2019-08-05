@@ -25,5 +25,5 @@ target_link_libraries(poco_cv_server_test ${CONAN_LIBS} ${OpenCV_LIBRARIES})
 add_executable(poco_cv_client_test src/cv_client_send.cpp)
 target_link_libraries(poco_cv_client_test ${CONAN_LIBS} ${OpenCV_LIBRARIES})
 
-add_executable(poco_cv_client_receive_test src/cv_client_receive.cpp)
-target_link_libraries(poco_cv_client_receive_test ${CONAN_LIBS} ${OpenCV_LIBRARIES})
+add_executable(poco_cv_client_main_test src/cv_client_main.cpp src/cv_client.cpp)
+target_link_libraries(poco_cv_client_main_test ${CONAN_LIBS} ${OpenCV_LIBRARIES})

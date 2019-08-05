@@ -28,7 +28,8 @@ int main(int argc, char const *argv[]) {
   cv::resize(img, img, cv::Size(VIDEO_WIDTH, VIDEO_HEIGHT));
   buffer_size = img.total() * img.elemSize();
   std::cout << "Sending buffer size: " << buffer_size << std::endl;
-  connection.sendBytes(&buffer_size, sizeof(buffer_size));
+  connection.sendBytes(&img.cols, sizeof(img.cols));
+  connection.sendBytes(&img.rows, sizeof(img.rows));
 
   while (connection.impl()->initialized()) {
     // Take a picture and resize it
