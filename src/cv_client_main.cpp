@@ -4,16 +4,20 @@
 #include <string>
 #include "cv_client.hpp"
 
-void eventReceive(cv::Mat &image) {
+void eventReceive(void *sender, cv::Mat &image) {
   cv::imshow("Socket image", image);
-  cv::waitKey(1);
+  int key = cv::waitKey(20);
+  if (key == 27) {
+    std::cout << "Esc pressed, stopping..." << std::endl;
+    CVSocketClient *client = static_cast<CVSocketClient *>(sender);
+    client->Stop();
+  }
 }
 
-void eventState(void *sender, CVSocketClient::ClientState &state){
-  if (state == CVSocketClient::kClientIdle)
-  {
+void eventState(void *sender, CVSocketClient::ClientState &state) {
+  if (state == CVSocketClient::kClientIdle) {
     std::cout << "State changed to Idle, calling exit function..." << std::endl;
-    CVSocketClient *client = static_cast<CVSocketClient*>(sender);
+    CVSocketClient *client = static_cast<CVSocketClient *>(sender);
     client->Exit();
   }
 }
@@ -59,9 +63,12 @@ int main(int argc, char const *argv[]) {
     client.StartSending(image);
 
     // This start can be called before or after StartSending/StartReceiving
-    
 
     std::cout << "Going to camera loop..." << std::endl;
+    std::cout << "NOTE: Although I've tried to read the connection closing, "
+                 "the sending side doesn't quite pick it up."
+              << std::endl
+              << "The only way to exit is Ctrl-C for now." << std::endl;
     while (true) {
       cap >> image;
       client.SendNewImage(image);

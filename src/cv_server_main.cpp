@@ -4,16 +4,20 @@
 #include <string>
 #include "cv_server.hpp"
 
-void eventReceive(cv::Mat &image) {
+void eventReceive(void *sender, cv::Mat &image) {
   cv::imshow("Socket image", image);
-  cv::waitKey(1);
+  int key = cv::waitKey(20);
+  if (key == 27) {
+    std::cout << "Esc pressed, stopping..." << std::endl;
+    CVSocketServer *server = static_cast<CVSocketServer *>(sender);
+    server->Stop();
+  }
 }
 
-void eventState(void *sender, CVSocketServer::ServerState &state){
-  if (state == CVSocketServer::kServerIdle)
-  {
+void eventState(void *sender, CVSocketServer::ServerState &state) {
+  if (state == CVSocketServer::kServerIdle) {
     std::cout << "State changed to Idle, calling exit function..." << std::endl;
-    CVSocketServer *server = static_cast<CVSocketServer*>(sender);
+    CVSocketServer *server = static_cast<CVSocketServer *>(sender);
     server->Exit();
   }
 }
@@ -56,9 +60,13 @@ int main(int argc, char const *argv[]) {
     server_thread.start(server);
 
     cap >> image;
-    server.StartSending(image); 
+    server.StartSending(image);
 
     std::cout << "Going to camera loop..." << std::endl;
+    std::cout << "NOTE: Although I've tried to read the connection closing, "
+                 "the sending side doesn't quite pick it up."
+              << std::endl
+              << "The only way to exit is Ctrl-C for now." << std::endl;
     while (true) {
       cap >> image;
       server.SendNewImage(image);
@@ -68,10 +76,11 @@ int main(int argc, char const *argv[]) {
   }
 
   if (!sending) {
-      server_thread.start(server);
+    server_thread.start(server);
     server.StartReceiving(CV_8UC3);
     server.ReceivedImage += Poco::delegate(&eventReceive);
     server.StateChanged += Poco::delegate(&eventState);
+    std::cout << "Press esc while the window is active to stop" << std::endl;
 
     // Nothing left to do in the main thread anymore. The server calls for a
     // single thread with function eventReceive() by itself through

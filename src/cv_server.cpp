@@ -2,7 +2,10 @@
 #include <iostream>
 
 CVSocketServer::CVSocketServer(std::string &full_address_string)
-    : address_(full_address_string), server_(address_), state_(kServerIdle), sema_(1) {}
+    : address_(full_address_string),
+      server_(address_),
+      state_(kServerIdle),
+      sema_(1) {}
 
 CVSocketServer::~CVSocketServer() {
   if (connection_.impl()->initialized()) {
@@ -53,8 +56,8 @@ void CVSocketServer::Stop() {
 }
 
 void CVSocketServer::Exit() {
-    std::cout << "Exiting..." << std::endl;
-    running_ = false;    
+  std::cout << "Exiting..." << std::endl;
+  running_ = false;
 }
 
 void CVSocketServer::SendNewImage(cv::Mat &image) {
@@ -71,11 +74,11 @@ void CVSocketServer::SendMat() {
   if (new_image_) {
     mutex_.lock();
     image_.reshape(0, 1);
-    if (!CheckConnection()){
-        connection_.close();
-        state_ = kServerIdle;
-        StateChanged.notify(this, state_);
-        return;
+    if (!CheckConnection()) {
+      connection_.close();
+      state_ = kServerIdle;
+      StateChanged.notify(this, state_);
+      return;
     }
     connection_.sendBytes(image_.data, buffer_size_);
     new_image_ = false;
@@ -83,14 +86,13 @@ void CVSocketServer::SendMat() {
   }
 }
 
-bool CVSocketServer::CheckConnection(){
-    std::cout << "Checking connection..." << std::endl;
-    if (connection_.poll(Poco::Timespan(0, 100), Poco::Net::Socket::SELECT_ERROR)){
-        std::cout << "Disconnected from server" << std::endl;
-        return false;
-    }
-    std::cout << "Connection OK" << std::endl;
-    return true;
+bool CVSocketServer::CheckConnection() {
+  if (connection_.poll(Poco::Timespan(0, 100),
+                       Poco::Net::Socket::SELECT_ERROR)) {
+    std::cout << "Disconnected from server" << std::endl;
+    return false;
+  }
+  return true;
 }
 
 void CVSocketServer::ReceiveMat() {
