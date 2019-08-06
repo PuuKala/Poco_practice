@@ -1,3 +1,5 @@
+// Old implementation, could be useful to understand how this all works
+
 #include <Poco/Net/StreamSocket.h>
 #include <iostream>
 #include <opencv2/opencv.hpp>
