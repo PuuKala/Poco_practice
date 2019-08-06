@@ -1,15 +1,34 @@
+/**
+ * @file cv_client.cpp
+ * @brief The definitions of CVSocketClient class
+ * 
+ * @author Sami Karkinen
+ */
 #include "cv_client.hpp"
 #include <iostream>
 
+/**
+ * @brief Non-functional constructor, initializes address_, state_ and sema_
+ *
+ * @param full_address_string The full address in the form of IP:PORT, for
+ * example 127.0.0.1:5000
+ */
 CVSocketClient::CVSocketClient(std::string &full_address_string)
     : address_(full_address_string), state_(kClientIdle), sema_(1) {}
 
+/**
+ * @brief Destructor, closes the possibly open connection
+ */
 CVSocketClient::~CVSocketClient() {
   if (connection_.impl()->initialized()) {
     connection_.close();
   }
 }
 
+/**
+ * @brief Take the size information of the image, send it to the server and
+ * change state to sending
+ */
 void CVSocketClient::StartSending(cv::Mat &image) {
   connection_.connect(address_);
   connection_.sendBytes(&image.cols, sizeof(image.cols));
@@ -24,6 +43,13 @@ void CVSocketClient::StartSending(cv::Mat &image) {
   sema_.set();
 }
 
+/**
+ * @brief Receive the size information of the image and initialize a cv::Mat
+ * with them according to the cv_mat_type
+ *
+ * @param cv_mat_type The type of the cv::Mat to receive. See OpenCV
+ * documentation for more information on that.
+ */
 void CVSocketClient::StartReceiving(int cv_mat_type) {
   connection_.connect(address_);
   connection_.receiveBytes(&image_cols_, sizeof(image_cols_));
@@ -40,6 +66,9 @@ void CVSocketClient::StartReceiving(int cv_mat_type) {
   sema_.set();
 }
 
+/**
+ * @brief Stop the sending/receiving, close the connection and go to idle state
+ */
 void CVSocketClient::Stop() {
   mutex_.lock();
   std::cout << "Stopping..." << std::endl;
@@ -49,11 +78,19 @@ void CVSocketClient::Stop() {
   mutex_.unlock();
 }
 
+/**
+ * @brief Exit the run loop
+ */
 void CVSocketClient::Exit() {
-    std::cout << "Exiting..." << std::endl;
-    running_ = false;    
+  std::cout << "Exiting..." << std::endl;
+  running_ = false;
 }
 
+/**
+ * @brief Set a new image to be sent, if the send mutex is unlocked
+ *
+ * @param image The image to be sent
+ */
 void CVSocketClient::SendNewImage(cv::Mat &image) {
   if (mutex_.tryLock()) {
     // Copy the image to private image_ in order to be sure the private image_
@@ -64,6 +101,9 @@ void CVSocketClient::SendNewImage(cv::Mat &image) {
   }
 }
 
+/**
+ * @brief Send the image set with SendNewImage() function
+ */
 void CVSocketClient::SendMat() {
   if (new_image_) {
     mutex_.lock();
@@ -80,6 +120,11 @@ void CVSocketClient::SendMat() {
   }
 }
 
+/**
+ * @brief Check whether there's errors in the connection
+ * @details This doesn't actually work for some reason... Even if the connection
+ * is closed from the other side, poll() doesn't seem to detect that reliably
+ */
 bool CVSocketClient::CheckConnection() {
   if (connection_.poll(Poco::Timespan(0, 100),
                        Poco::Net::Socket::SELECT_ERROR)) {
@@ -89,6 +134,10 @@ bool CVSocketClient::CheckConnection() {
   return true;
 }
 
+/**
+ * @brief Receive an image from the server, reconstruct it and send it onwards
+ * through an event
+ */
 void CVSocketClient::ReceiveMat() {
   if (!mutex_.tryLock()) {
     std::cout << "Could not lock mutex for receiving data!" << std::endl;
@@ -131,6 +180,9 @@ void CVSocketClient::ReceiveMat() {
   }
 }
 
+/**
+ * @brief Act according to the state of this class implementation
+ */
 void CVSocketClient::StateMachine() {
   switch (state_) {
     case kClientIdle:  // Not used if start called before run
@@ -148,6 +200,10 @@ void CVSocketClient::StateMachine() {
   }
 }
 
+/**
+ * @brief Poco::Runnable implementation. Runs the StateMachine() in a loop and
+ * stops when Exit() is called.
+ */
 void CVSocketClient::run() {
   while (running_) {
     StateMachine();

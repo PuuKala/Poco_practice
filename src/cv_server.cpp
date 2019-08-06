@@ -1,3 +1,12 @@
+/**
+ * @file cv_server.cpp
+ * @brief The definitions of CVSocketServer class
+ * @details The functions are essentially the same as in the client, thus the
+ * function documentation is left only there for now
+ *
+ * @author Sami Karkinen
+ */
+
 #include "cv_server.hpp"
 #include <iostream>
 

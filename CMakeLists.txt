@@ -6,6 +6,9 @@ conan_basic_setup()
 
 message("Conan libs: ${CONAN_LIBS}")
 
+# NOTE: OpenCV could be fetched through conan too. OpenCV can be found in conan-community,
+# instead of conan-center, so it might need some more configuration for searching from
+# conan-community specifically.
 find_package(OpenCV)
 if (NOT OpenCV_FOUND)
     message(FATAL_ERROR "OpenCV not found!")
