@@ -20,7 +20,7 @@ class CVSocketClient : public Poco::Runnable {
   CVSocketClient(std::string &full_address_string);
   ~CVSocketClient();
   void StartSending(cv::Mat &image);
-  void StartReceiving(int cv_mat_type);
+  void StartReceiving();
   void Stop();
   void Exit();
   void SendNewImage(cv::Mat &image);  // Can be done with events easily too
@@ -45,7 +45,6 @@ class CVSocketClient : public Poco::Runnable {
   int image_rows_;
   std::size_t buffer_size_;
   int received_bytes_;
-  int image_ptr_;
   uchar *sock_data_;
 
   // Declaration of state and whether there's new image available

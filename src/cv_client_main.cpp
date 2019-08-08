@@ -83,7 +83,7 @@ int main(int argc, char const *argv[]) {
     // The thread needs to be started before calling the Start...() functions,
     // because of semaphore usage
     client_thread.start(client);
-    client.StartReceiving(CV_8UC3);
+    client.StartReceiving();
     client.ReceivedImage += Poco::delegate(&eventReceive);
     client.StateChanged += Poco::delegate(&eventState);
 

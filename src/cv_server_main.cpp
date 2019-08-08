@@ -77,7 +77,7 @@ int main(int argc, char const *argv[]) {
 
   if (!sending) {
     server_thread.start(server);
-    server.StartReceiving(CV_8UC3);
+    server.StartReceiving();
     server.ReceivedImage += Poco::delegate(&eventReceive);
     server.StateChanged += Poco::delegate(&eventState);
     std::cout << "Press esc while the window is active to stop" << std::endl;

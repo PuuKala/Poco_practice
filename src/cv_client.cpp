@@ -1,7 +1,7 @@
 /**
  * @file cv_client.cpp
  * @brief The definitions of CVSocketClient class
- * 
+ *
  * @author Sami Karkinen
  */
 #include "cv_client.hpp"
@@ -35,6 +35,22 @@ void CVSocketClient::StartSending(cv::Mat &image) {
   connection_.sendBytes(&image.rows, sizeof(image.rows));
   std::cout << "Sent image size: " << image.cols << "x" << image.rows
             << std::endl;
+  int mat_type = image.type();
+  connection_.sendBytes(&mat_type, sizeof(mat_type));
+  std::cout << "Sent image type: ";
+  switch (mat_type) {
+    case CV_8UC3:
+      std::cout << "CV_8UC3" << std::endl;
+      break;
+
+    case CV_16UC3:
+      std::cout << "CV_16UC3" << std::endl;
+      break;
+
+    default:
+      std::cout << "UNCOMMON TYPE" << std::endl;
+      break;
+  }
   buffer_size_ = image.total() * image.elemSize();
   std::cout << "Calculated buffer size: " << buffer_size_ << std::endl;
   std::cout << "Starting to send..." << std::endl;
@@ -50,13 +66,15 @@ void CVSocketClient::StartSending(cv::Mat &image) {
  * @param cv_mat_type The type of the cv::Mat to receive. See OpenCV
  * documentation for more information on that.
  */
-void CVSocketClient::StartReceiving(int cv_mat_type) {
+void CVSocketClient::StartReceiving() {
   connection_.connect(address_);
   connection_.receiveBytes(&image_cols_, sizeof(image_cols_));
   connection_.receiveBytes(&image_rows_, sizeof(image_rows_));
   std::cout << "Received image size: " << image_cols_ << "x" << image_rows_
             << std::endl;
-  image_ = cv::Mat::zeros(cv::Size2i(image_cols_, image_rows_), cv_mat_type);
+  int mat_type;
+  connection_.receiveBytes(&mat_type, sizeof(mat_type));
+  image_ = cv::Mat::zeros(cv::Size2i(image_cols_, image_rows_), mat_type);
   buffer_size_ = image_.total() * image_.elemSize();
   std::cout << "Calculated buffer size: " << buffer_size_ << std::endl;
   sock_data_ = new uchar[buffer_size_];
@@ -84,6 +102,9 @@ void CVSocketClient::Stop() {
 void CVSocketClient::Exit() {
   std::cout << "Exiting..." << std::endl;
   running_ = false;
+  if (state_ == kClientIdle) {
+    sema_.set();
+  }
 }
 
 /**
@@ -107,7 +128,6 @@ void CVSocketClient::SendNewImage(cv::Mat &image) {
 void CVSocketClient::SendMat() {
   if (new_image_) {
     mutex_.lock();
-    image_.reshape(0, 1);
     if (!CheckConnection()) {
       connection_.close();
       state_ = kClientIdle;
@@ -135,8 +155,8 @@ bool CVSocketClient::CheckConnection() {
 }
 
 /**
- * @brief Receive an image from the server, reconstruct it and send it onwards
- * through an event
+ * @brief Receive an image from the server, assign it to cv::Mat and send it
+ * onwards through an event
  */
 void CVSocketClient::ReceiveMat() {
   if (!mutex_.tryLock()) {
@@ -161,23 +181,15 @@ void CVSocketClient::ReceiveMat() {
 
   mutex_.unlock();
 
-  if (image_.type() == CV_8UC3) {
-    image_ptr_ = 0;
-    for (std::size_t i = 0; i < image_rows_; i++) {
-      for (std::size_t j = 0; j < image_cols_; j++) {
-        image_.at<cv::Vec3b>(i, j) =
-            cv::Vec3b(sock_data_[image_ptr_], sock_data_[image_ptr_ + 1],
-                      sock_data_[image_ptr_ + 2]);
-        image_ptr_ += 3;
-      }
-    }
+  // Assign sock_data_ to cv::Mat of the
+  image_ =
+      cv::Mat(cv::Size2i(image_cols_, image_rows_), image_.type(), sock_data_);
 
-    // WARNING: This notification doesn't check if the previous notification is
-    // done. I had trouble initializing Poco::ActiveResult as private variable
-    // and thus, there is no waiting for previous notification to end at the
-    // moment.
-    ReceivedImage.notifyAsync(this, image_);
-  }
+  // WARNING: This notification doesn't check if the previous notification is
+  // done. I had trouble initializing Poco::ActiveResult as private variable
+  // and thus, there is no waiting for previous notification to end at the
+  // moment.
+  ReceivedImage.notifyAsync(this, image_);
 }
 
 /**
